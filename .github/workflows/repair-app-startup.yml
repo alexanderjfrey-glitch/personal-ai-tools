@@ -18,7 +18,7 @@ jobs:
           old="let tasks=JSON.parse(localStorage.getItem(KEY)||'[]'),chatHistory=JSON.parse(localStorage.getItem(CHAT)||'[]'),tokenClient=null,accessToken=null,driveFiles=[],gmailLabels=[],labelProfiles={};"
           new="let tasks=(()=>{try{let v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch(e){return []}})(),chatHistory=(()=>{try{let v=JSON.parse(localStorage.getItem(CHAT)||'[]');return Array.isArray(v)?v:[]}catch(e){return []}})(),tokenClient=null,accessToken=null,driveFiles=[],gmailLabels=[],labelProfiles={};"
           if old in s: s=s.replace(old,new,1)
-          old2="render();renderChat();window.openTask=openTask;window.closeTask=closeTask;window.saveTask=saveTask;window.completeTask=completeTask;window.show=show;window.sendChat=sendChat;window.connectGoogle=connectGoogle;window.learnLabels=learnLabels;window.analyzeGmail=analyzeGmail;window.openNewLabel=openNewLabel;window.closeNewLabel=closeNewLabel;window.createLabel=createLabel;window.loadDrive=loadDrive;window.filterDrive=filterDrive;"
+          old2="render();renderChat();window.sendChat=sendChat;"
           new2="window.openTask=openTask;window.closeTask=closeTask;window.saveTask=saveTask;window.completeTask=completeTask;window.show=show;window.sendChat=sendChat;window.connectGoogle=connectGoogle;window.learnLabels=learnLabels;window.analyzeGmail=analyzeGmail;window.openNewLabel=openNewLabel;window.closeNewLabel=closeNewLabel;window.createLabel=createLabel;window.loadDrive=loadDrive;window.filterDrive=filterDrive;try{render();renderChat()}catch(e){console.error(e)}"
           if old2 in s: s=s.replace(old2,new2,1)
           p.write_text(s)
@@ -29,5 +29,5 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add index.html
           if git diff --cached --quiet; then echo 'No changes'; exit 0; fi
-          git commit -m "Harden app startup and button handlers"
+          git commit -m "Expose all app button handlers"
           git push
