@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch UI for iOS-safe DOM access
+      - name: Repair JavaScript DOM bindings
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -19,29 +19,31 @@ jobs:
           p=Path('index.html')
           s=p.read_text()
           old=s
+          # Remove the old Safari ID-global shim.
           s=s.replace("<script>\n// Safari/iOS compatibility: expose element IDs used by the legacy UI code.\ndocument.querySelectorAll('[id]').forEach(el => { if (!(el.id in window)) window[el.id] = el; });\n</script>", "")
+          # Keep chat history separate from the section whose id is 'chat'.
           s=s.replace("let tasks=JSON.parse(localStorage.getItem(KEY)||'[]'),chat=JSON.parse(localStorage.getItem(CHAT)||'[]')", "let tasks=JSON.parse(localStorage.getItem(KEY)||'[]'),chatHistory=JSON.parse(localStorage.getItem(CHAT)||'[]')")
           s=s.replace("chat.map(", "chatHistory.map(")
           s=s.replace("chat.push(", "chatHistory.push(")
           s=s.replace("JSON.stringify(chat)", "JSON.stringify(chatHistory)")
           s=s.replace("{messages:chat,googleAccessToken:accessToken}", "{messages:chatHistory,googleAccessToken:accessToken}")
-          # Remove previously injected DOM-reference declarations so this is idempotent.
-          s=re.sub(r'\nconst \$=id=>document\.getElementById\(id\);', '', s)
-          s=re.sub(r'\nconst todayEl=\$\(\x27today\x27\).*?;', '', s)
+          # Remove ALL prior injected DOM declaration blocks, including duplicates from earlier runs.
+          s=re.sub(r'\nconst \$=id=>document\.getElementById\(id\);\nconst todayEl=\$\(\x27today\x27\).*?;\n', '\n', s)
+          # Also remove any stray duplicate $ declaration.
+          s=re.sub(r'\nconst \$=id=>document\.getElementById\(id\);\n', '\n', s)
           marker="const CLIENT='590547441923-raa0qhctb2mfapgflcjpr22sufcpcatd.apps.googleusercontent.com',iso=new Date().toISOString().slice(0,10);"
           inject=marker+"\nconst $=id=>document.getElementById(id);\nconst todayEl=$('today'),briefEl=$('brief'),openCountEl=$('openCount'),dueCountEl=$('dueCount'),urgentCountEl=$('urgentCount'),taskListEl=$('taskList'),modalEl=$('modal'),chatBoxEl=$('chatBox'),chatInputEl=$('chatInput'),sendBtnEl=$('sendBtn'),googleStatusEl=$('googleStatus'),emailStatusEl=$('emailStatus'),labelTreeEl=$('labelTree'),newLabelParentEl=$('newLabelParent'),labelModalEl=$('labelModal'),driveStatusEl=$('driveStatus'),driveListEl=$('driveList'),driveSearchEl=$('driveSearch'),taskTitleEl=$('taskTitle'),priorityEl=$('priority'),areaEl=$('area'),dueEl=$('due'),newLabelNameEl=$('newLabelName'),gmailSummaryEl=$('gmailSummary'),emailListEl=$('emailList');"
           s=s.replace(marker,inject,1)
           repl={"today.textContent":"todayEl.textContent","openCount.textContent":"openCountEl.textContent","dueCount.textContent":"dueCountEl.textContent","urgentCount.textContent":"urgentCountEl.textContent","brief.textContent":"briefEl.textContent","taskList.innerHTML":"taskListEl.innerHTML","modal.style.display":"modalEl.style.display","chatBox.innerHTML":"chatBoxEl.innerHTML","chatBox.scrollTop":"chatBoxEl.scrollTop","chatInput.value":"chatInputEl.value","sendBtn.disabled":"sendBtnEl.disabled","sendBtn.textContent":"sendBtnEl.textContent","googleStatus.textContent":"googleStatusEl.textContent","googleStatus.innerHTML":"googleStatusEl.innerHTML","emailStatus.textContent":"emailStatusEl.textContent","gmailSummary.innerHTML":"gmailSummaryEl.innerHTML","emailList.innerHTML":"emailListEl.innerHTML","labelTree.innerHTML":"labelTreeEl.innerHTML","newLabelParent.innerHTML":"newLabelParentEl.innerHTML","labelModal.style.display":"labelModalEl.style.display","driveStatus.textContent":"driveStatusEl.textContent","driveList.innerHTML":"driveListEl.innerHTML","driveSearch.value":"driveSearchEl.value","taskTitle.value":"taskTitleEl.value","priority.value":"priorityEl.value","area.value":"areaEl.value","due.value":"dueEl.value","newLabelName.value":"newLabelNameEl.value","newLabelParent.value":"newLabelParentEl.value"}
           for a,b in repl.items(): s=s.replace(a,b)
-          s=s.replace("chatBoxEl.scrollTop=chatBox.scrollHeight", "chatBoxEl.scrollTop=chatBoxEl.scrollHeight")
           s=s.replace("!window.google||!google.accounts", "!window.google||!window.google.accounts")
-          # Remove duplicate diagnostic blocks, then keep one before Google script.
-          s=re.sub(r'(\n<script>\nwindow\.addEventListener\(\x27error\x27, function\(e\)\{.*?</script>\n)+', '\n', s, flags=re.S)
+          # Remove every existing runtime diagnostic block, then add exactly one.
+          s=re.sub(r'\n<script>\nwindow\.addEventListener\(\x27error\x27, function\(e\)\{.*?</script>\n', '\n', s, flags=re.S)
           boot='''\n<script>\nwindow.addEventListener('error', function(e){\n  var b=document.getElementById('runtimeError');\n  if(!b){ b=document.createElement('div'); b.id='runtimeError'; b.style.cssText='position:fixed;left:10px;right:10px;bottom:80px;z-index:99999;padding:12px;border-radius:10px;background:#8b0000;color:#fff;font:14px -apple-system,BlinkMacSystemFont,sans-serif'; document.body.appendChild(b); }\n  b.textContent='App error: '+(e.message||'JavaScript failed');\n});\n</script>\n'''
-          s=s.replace('<script src="https://accounts.google.com/gsi/client" async defer></script>', boot+'<script src="https://accounts.google.com/gsi/client" async defer></script>',1) if 'id="runtimeError"' not in s else s
+          s=s.replace('<script src="https://accounts.google.com/gsi/client" async defer></script>', boot+'<script src="https://accounts.google.com/gsi/client" async defer></script>',1)
           if s!=old:
               p.write_text(s)
-              print('Patched index.html')
+              print('Repaired index.html')
           else:
               print('No changes needed')
           PY
@@ -51,5 +53,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
           git diff --cached --quiet && exit 0
-          git commit -m 'Fix iOS UI event handling [skip ci]'
+          git commit -m 'Fix mobile JavaScript initialization [skip ci]'
           git push
