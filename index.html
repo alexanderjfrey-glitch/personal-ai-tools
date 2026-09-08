@@ -36,7 +36,7 @@ window.addEventListener('error', function(e){
 
 <script>
 const KEY='pai_tasks_v1',CHAT='pai_chat_v1';
-let tasks=JSON.parse(localStorage.getItem(KEY)||'[]'),chatHistory=JSON.parse(localStorage.getItem(CHAT)||'[]'),tokenClient=null,accessToken=null,driveFiles=[],gmailLabels=[],labelProfiles={};
+let tasks=(()=>{try{let v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v:[]}catch(e){return []}})(),chatHistory=(()=>{try{let v=JSON.parse(localStorage.getItem(CHAT)||'[]');return Array.isArray(v)?v:[]}catch(e){return []}})(),tokenClient=null,accessToken=null,driveFiles=[],gmailLabels=[],labelProfiles={};
 const CLIENT='590547441923-raa0qhctb2mfapgflcjpr22sufcpcatd.apps.googleusercontent.com',iso=new Date().toISOString().slice(0,10);
 const $=id=>document.getElementById(id);
 const todayEl=$('today'),briefEl=$('brief'),openCountEl=$('openCount'),dueCountEl=$('dueCount'),urgentCountEl=$('urgentCount'),taskListEl=$('taskList'),modalEl=$('modal'),chatBoxEl=$('chatBox'),chatInputEl=$('chatInput'),sendBtnEl=$('sendBtn'),googleStatusEl=$('googleStatus'),emailStatusEl=$('emailStatus'),labelTreeEl=$('labelTree'),newLabelParentEl=$('newLabelParent'),labelModalEl=$('labelModal'),driveStatusEl=$('driveStatus'),driveListEl=$('driveList'),driveSearchEl=$('driveSearch'),taskTitleEl=$('taskTitle'),priorityEl=$('priority'),areaEl=$('area'),dueEl=$('due'),newLabelNameEl=$('newLabelName'),gmailSummaryEl=$('gmailSummary'),emailListEl=$('emailList');
