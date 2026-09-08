@@ -21,7 +21,7 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 const KEY='pai_tasks_v1'; let tasks=JSON.parse(localStorage.getItem(KEY)||'[]');
-const GOOGLE_CLIENT_ID='YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID='590547441923-raa0qhctb2mfapgflcjpr22sufcpcatd.apps.googleusercontent.com';
 let googleTokenClient=null;
 const today=new Date(); const iso=today.toISOString().slice(0,10); document.getElementById('today').textContent=today.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
 function save(){localStorage.setItem(KEY,JSON.stringify(tasks))}
