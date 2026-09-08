@@ -1,0 +1,33 @@
+name: Fix app runtime bindings
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch runtime bindings
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          old="const todayEl=$('today'),briefEl=$('brief'),openCountEl=$('openCount'),dueCountEl=$('dueCount'),urgentCountEl=$('urgentCount'),taskListEl=$('taskList'),modalEl=$('modal'),chatBoxEl=$('chatBox'),chatInputEl=$('chatInput'),sendBtnEl=$('sendBtn'),googleStatusEl=$('googleStatus'),emailStatusEl=$('emailStatus'),labelTreeEl=$('labelTree'),newLabelParentEl=$('newLabelParent'),labelModalEl=$('labelModal'),driveStatusEl=$('driveStatus'),driveListEl=$('driveList'),driveSearchEl=$('driveSearch'),taskTitleEl=$('taskTitle'),priorityEl=$('priority'),areaEl=$('area'),dueEl=$('due'),newLabelNameEl=$('newLabelName'),gmailSummaryEl=$('gmailSummary'),emailListEl=$('emailList');"
+          exports="window.openTask=openTask;window.closeTask=closeTask;window.saveTask=saveTask;window.completeTask=completeTask;window.show=show;window.sendChat=sendChat;window.connectGoogle=connectGoogle;window.learnLabels=learnLabels;window.analyzeGmail=analyzeGmail;window.openNewLabel=openNewLabel;window.closeNewLabel=closeNewLabel;window.createLabel=createLabel;window.loadDrive=loadDrive;window.filterDrive=filterDrive;window.moveEmail=moveEmail;"
+          if old not in s: raise SystemExit('anchor not found')
+          if exports not in s: raise SystemExit('exports not found')
+          s=s.replace(old,old+'\n'+exports,1)
+          s=s.replace("window.window.sendChat()","window.sendChat()")
+          p.write_text(s)
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Fix runtime button bindings"
+          git push
