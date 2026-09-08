@@ -31,3 +31,5 @@ jobs:
           if git diff --cached --quiet; then echo 'No changes'; exit 0; fi
           git commit -m "Expose all app button handlers"
           git push
+      - name: Keep workflow marker
+        run: echo "repair workflow active"
