@@ -16,14 +16,13 @@ jobs:
           from pathlib import Path
           p = Path('index.html')
           s = p.read_text()
-          marker = 'window.openTask=openTask;'
-          if marker not in s:
-              exports = "\nwindow.openTask=openTask;window.closeTask=closeTask;window.saveTask=saveTask;window.completeTask=completeTask;window.show=show;window.sendChat=sendChat;window.connectGoogle=connectGoogle;window.learnLabels=learnLabels;window.analyzeGmail=analyzeGmail;window.openNewLabel=openNewLabel;window.closeNewLabel=closeNewLabel;window.createLabel=createLabel;window.loadDrive=loadDrive;window.filterDrive=filterDrive;\n"
-              pos = s.rfind('</script>')
-              if pos < 0:
-                  raise SystemExit('No script tag found')
-              s = s[:pos] + exports + s[pos:]
-              p.write_text(s)
+          exports = "window.openTask=openTask;window.closeTask=closeTask;window.saveTask=saveTask;window.completeTask=completeTask;window.show=show;window.sendChat=sendChat;window.connectGoogle=connectGoogle;window.learnLabels=learnLabels;window.analyzeGmail=analyzeGmail;window.openNewLabel=openNewLabel;window.closeNewLabel=closeNewLabel;window.createLabel=createLabel;window.loadDrive=loadDrive;window.filterDrive=filterDrive;"
+          s = s.replace(exports, '')
+          pos = s.rfind('</script>')
+          if pos < 0:
+              raise SystemExit('No script tag found')
+          s = s[:pos] + '\n' + exports + '\n' + s[pos:]
+          p.write_text(s)
           PY
       - name: Commit fix
         run: |
