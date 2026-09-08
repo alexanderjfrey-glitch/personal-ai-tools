@@ -32,7 +32,9 @@ window.addEventListener('error', function(e){
   b.textContent='App error: '+(e.message||'JavaScript failed');
 });
 </script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer>
+window.openTask=openTask;window.closeTask=closeTask;window.saveTask=saveTask;window.completeTask=completeTask;window.show=show;window.sendChat=sendChat;window.connectGoogle=connectGoogle;window.learnLabels=learnLabels;window.analyzeGmail=analyzeGmail;window.openNewLabel=openNewLabel;window.closeNewLabel=closeNewLabel;window.createLabel=createLabel;window.loadDrive=loadDrive;window.filterDrive=filterDrive;
+</script>
 
 <script>
 const KEY='pai_tasks_v1',CHAT='pai_chat_v1';
