@@ -23,21 +23,6 @@
 <div class="modal" id="modal"><div class="sheet"><button class="close" onclick="closeTask()">×</button><h2>Add a task</h2><form onsubmit="saveTask(event)"><label>What needs to get done?</label><input id="taskTitle" required placeholder="Call Roger about drafting work"><label>Priority</label><select id="priority"><option>normal</option><option>high</option><option>urgent</option><option>low</option></select><label>Area</label><select id="area"><option>general</option><option>job search</option><option>drafting</option><option>bidding</option></select><label>Due date</label><input id="due" type="date"><button class="load">Save task</button></form></div></div>
 <div class="modal" id="labelModal"><div class="sheet"><button class="close" onclick="closeNewLabel()">×</button><h2>Create Gmail label</h2><p class="muted">Choose a parent to put a company or sub-label inside a bigger category.</p><form onsubmit="createLabel(event)"><label>Label name</label><input id="newLabelName" required placeholder="Cab-Con"><label>Parent label</label><select id="newLabelParent"><option value="">None — top level</option></select><button class="load">Create label</button></form></div></div>
 
-<script>
-window.addEventListener('error', function(e){
-  var b=document.getElementById('runtimeError');
-  if(!b){ b=document.createElement('div'); b.id='runtimeError'; b.style.cssText='position:fixed;left:10px;right:10px;bottom:80px;z-index:99999;padding:12px;border-radius:10px;background:#8b0000;color:#fff;font:14px -apple-system,BlinkMacSystemFont,sans-serif'; document.body.appendChild(b); }
-  b.textContent='App error: '+(e.message||'JavaScript failed');
-});
-</script>
-
-<script>
-window.addEventListener('error', function(e){
-  var b=document.getElementById('runtimeError');
-  if(!b){ b=document.createElement('div'); b.id='runtimeError'; b.style.cssText='position:fixed;left:10px;right:10px;bottom:80px;z-index:99999;padding:12px;border-radius:10px;background:#8b0000;color:#fff;font:14px -apple-system,BlinkMacSystemFont,sans-serif'; document.body.appendChild(b); }
-  b.textContent='App error: '+(e.message||'JavaScript failed');
-});
-</script>
 
 <script>
 window.addEventListener('error', function(e){
@@ -54,10 +39,6 @@ let tasks=JSON.parse(localStorage.getItem(KEY)||'[]'),chatHistory=JSON.parse(loc
 const CLIENT='590547441923-raa0qhctb2mfapgflcjpr22sufcpcatd.apps.googleusercontent.com',iso=new Date().toISOString().slice(0,10);
 const $=id=>document.getElementById(id);
 const todayEl=$('today'),briefEl=$('brief'),openCountEl=$('openCount'),dueCountEl=$('dueCount'),urgentCountEl=$('urgentCount'),taskListEl=$('taskList'),modalEl=$('modal'),chatBoxEl=$('chatBox'),chatInputEl=$('chatInput'),sendBtnEl=$('sendBtn'),googleStatusEl=$('googleStatus'),emailStatusEl=$('emailStatus'),labelTreeEl=$('labelTree'),newLabelParentEl=$('newLabelParent'),labelModalEl=$('labelModal'),driveStatusEl=$('driveStatus'),driveListEl=$('driveList'),driveSearchEl=$('driveSearch'),taskTitleEl=$('taskTitle'),priorityEl=$('priority'),areaEl=$('area'),dueEl=$('due'),newLabelNameEl=$('newLabelName'),gmailSummaryEl=$('gmailSummary'),emailListEl=$('emailList');
-const $=id=>document.getElementById(id);
-const todayEl=$('today'),briefEl=$('brief'),openCountEl=$('openCount'),dueCountEl=$('dueCount'),urgentCountEl=$('urgentCount'),taskListEl=$('taskList'),modalEl=$('modal'),chatBoxEl=$('chatBox'),chatInputEl=$('chatInput'),sendBtnEl=$('sendBtn'),googleStatusEl=$('googleStatus'),emailStatusEl=$('emailStatus'),labelTreeEl=$('labelTree'),newLabelParentEl=$('newLabelParent'),labelModalEl=$('labelModal'),driveStatusEl=$('driveStatus'),driveListEl=$('driveList'),driveSearchEl=$('driveSearch'),taskTitleEl=$('taskTitle'),priorityEl=$('priority'),areaEl=$('area'),dueEl=$('due'),newLabelNameEl=$('newLabelName');
-const $=id=>document.getElementById(id);
-const todayEl=$('today'),briefEl=$('brief'),openCountEl=$('openCount'),dueCountEl=$('dueCount'),urgentCountEl=$('urgentCount'),taskListEl=$('taskList'),modalEl=$('modal'),chatBoxEl=$('chatBox'),chatInputEl=$('chatInput'),sendBtnEl=$('sendBtn'),googleStatusEl=$('googleStatus'),emailStatusEl=$('emailStatus'),labelTreeEl=$('labelTree'),newLabelParentEl=$('newLabelParent'),labelModalEl=$('labelModal'),driveStatusEl=$('driveStatus'),driveListEl=$('driveList'),driveSearchEl=$('driveSearch');
 todayEl.textContent=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function save(){localStorage.setItem(KEY,JSON.stringify(tasks))}
