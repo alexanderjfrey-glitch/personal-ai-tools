@@ -24,6 +24,7 @@
 <div class="modal" id="labelModal"><div class="sheet"><button class="close" onclick="closeNewLabel()">×</button><h2>Create Gmail label</h2><p class="muted">Choose a parent to put a company or sub-label inside a bigger category.</p><form onsubmit="createLabel(event)"><label>Label name</label><input id="newLabelName" required placeholder="Cab-Con"><label>Parent label</label><select id="newLabelParent"><option value="">None — top level</option></select><button class="load">Create label</button></form></div></div>
 
 
+
 <script>
 window.addEventListener('error', function(e){
   var b=document.getElementById('runtimeError');
