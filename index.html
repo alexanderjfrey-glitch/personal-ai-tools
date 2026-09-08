@@ -24,6 +24,10 @@
 <div class="modal" id="labelModal"><div class="sheet"><button class="close" onclick="closeNewLabel()">×</button><h2>Create Gmail label</h2><p class="muted">Choose a parent to put a company or sub-label inside a bigger category.</p><form onsubmit="createLabel(event)"><label>Label name</label><input id="newLabelName" required placeholder="Cab-Con"><label>Parent label</label><select id="newLabelParent"><option value="">None — top level</option></select><button class="load">Create label</button></form></div></div>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
+// Safari/iOS compatibility: expose element IDs used by the legacy UI code.
+document.querySelectorAll('[id]').forEach(el => { if (!(el.id in window)) window[el.id] = el; });
+</script>
+<script>
 const KEY='pai_tasks_v1',CHAT='pai_chat_v1';
 let tasks=JSON.parse(localStorage.getItem(KEY)||'[]'),chat=JSON.parse(localStorage.getItem(CHAT)||'[]'),tokenClient=null,accessToken=null,driveFiles=[],gmailLabels=[],labelProfiles={};
 const CLIENT='590547441923-raa0qhctb2mfapgflcjpr22sufcpcatd.apps.googleusercontent.com',iso=new Date().toISOString().slice(0,10);
