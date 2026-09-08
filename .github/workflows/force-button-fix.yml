@@ -1,0 +1,46 @@
+name: Force button deployment
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Make button handlers explicit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+          replacements = {
+            'onclick="openTask()"': 'onclick="window.openTask()"',
+            'onclick="show(\'tasks\')"': 'onclick="window.show(\'tasks\')"',
+            'onclick="show(\'chat\')"': 'onclick="window.show(\'chat\')"',
+            'onclick="show(\'gmail\')"': 'onclick="window.show(\'gmail\')"',
+            'onclick="show(\'drive\')"': 'onclick="window.show(\'drive\')"',
+            'onclick="connectGoogle()"': 'onclick="window.connectGoogle()"',
+            'onclick="learnLabels()"': 'onclick="window.learnLabels()"',
+            'onclick="analyzeGmail()"': 'onclick="window.analyzeGmail()"',
+            'onclick="openNewLabel()"': 'onclick="window.openNewLabel()"',
+            'onclick="loadDrive()"': 'onclick="window.loadDrive()"',
+            'onclick="filterDrive()"': 'oninput="window.filterDrive()"',
+            'onclick="closeTask()"': 'onclick="window.closeTask()"',
+            'onsubmit="saveTask(event)"': 'onsubmit="window.saveTask(event)"',
+            'onclick="closeNewLabel()"': 'onclick="window.closeNewLabel()"',
+            'onsubmit="createLabel(event)"': 'onsubmit="window.createLabel(event)"',
+          }
+          for a,b in replacements.items(): s=s.replace(a,b)
+          s=s.replace('Version 0.1.0','Version 0.1.1')
+          p.write_text(s)
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Make all button handlers explicit [skip ci]"
+          git push
