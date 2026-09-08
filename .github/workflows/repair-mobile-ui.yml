@@ -15,6 +15,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p=Path('index.html')
           s=p.read_text()
           old=s
@@ -24,6 +25,9 @@ jobs:
           s=s.replace("chat.push(", "chatHistory.push(")
           s=s.replace("JSON.stringify(chat)", "JSON.stringify(chatHistory)")
           s=s.replace("{messages:chat,googleAccessToken:accessToken}", "{messages:chatHistory,googleAccessToken:accessToken}")
+          # Remove previously injected DOM-reference declarations so this is idempotent.
+          s=re.sub(r'\nconst \$=id=>document\.getElementById\(id\);', '', s)
+          s=re.sub(r'\nconst todayEl=\$\(\x27today\x27\).*?;', '', s)
           marker="const CLIENT='590547441923-raa0qhctb2mfapgflcjpr22sufcpcatd.apps.googleusercontent.com',iso=new Date().toISOString().slice(0,10);"
           inject=marker+"\nconst $=id=>document.getElementById(id);\nconst todayEl=$('today'),briefEl=$('brief'),openCountEl=$('openCount'),dueCountEl=$('dueCount'),urgentCountEl=$('urgentCount'),taskListEl=$('taskList'),modalEl=$('modal'),chatBoxEl=$('chatBox'),chatInputEl=$('chatInput'),sendBtnEl=$('sendBtn'),googleStatusEl=$('googleStatus'),emailStatusEl=$('emailStatus'),labelTreeEl=$('labelTree'),newLabelParentEl=$('newLabelParent'),labelModalEl=$('labelModal'),driveStatusEl=$('driveStatus'),driveListEl=$('driveList'),driveSearchEl=$('driveSearch'),taskTitleEl=$('taskTitle'),priorityEl=$('priority'),areaEl=$('area'),dueEl=$('due'),newLabelNameEl=$('newLabelName'),gmailSummaryEl=$('gmailSummary'),emailListEl=$('emailList');"
           s=s.replace(marker,inject,1)
@@ -31,9 +35,10 @@ jobs:
           for a,b in repl.items(): s=s.replace(a,b)
           s=s.replace("chatBoxEl.scrollTop=chatBox.scrollHeight", "chatBoxEl.scrollTop=chatBoxEl.scrollHeight")
           s=s.replace("!window.google||!google.accounts", "!window.google||!window.google.accounts")
+          # Remove duplicate diagnostic blocks, then keep one before Google script.
+          s=re.sub(r'(\n<script>\nwindow\.addEventListener\(\x27error\x27, function\(e\)\{.*?</script>\n)+', '\n', s, flags=re.S)
           boot='''\n<script>\nwindow.addEventListener('error', function(e){\n  var b=document.getElementById('runtimeError');\n  if(!b){ b=document.createElement('div'); b.id='runtimeError'; b.style.cssText='position:fixed;left:10px;right:10px;bottom:80px;z-index:99999;padding:12px;border-radius:10px;background:#8b0000;color:#fff;font:14px -apple-system,BlinkMacSystemFont,sans-serif'; document.body.appendChild(b); }\n  b.textContent='App error: '+(e.message||'JavaScript failed');\n});\n</script>\n'''
-          if 'id="runtimeError"' not in s:
-              s=s.replace('<script src="https://accounts.google.com/gsi/client" async defer></script>', boot+'<script src="https://accounts.google.com/gsi/client" async defer></script>',1)
+          s=s.replace('<script src="https://accounts.google.com/gsi/client" async defer></script>', boot+'<script src="https://accounts.google.com/gsi/client" async defer></script>',1) if 'id="runtimeError"' not in s else s
           if s!=old:
               p.write_text(s)
               print('Patched index.html')
