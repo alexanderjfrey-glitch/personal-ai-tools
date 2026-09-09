@@ -70,8 +70,10 @@ async function readGmail(token, messageId) {
   return {id:m.id||messageId,date:h.date||'',from:h.from||'',to:h.to||'',subject:h.subject||'',labels:m.labelIds||[],snippet:m.snippet||'',body:textPart(m.payload).slice(0,30000)};
 }
 
-async function createInteraction(key, input, previousInteractionId='') {
-  const payload={model:MODEL,input,system_instruction:system,tools,generation_config:{thinking_level:'low'}};
+async function createInteraction(key, input, previousInteractionId='', forceTool='') {
+  const generation_config={thinking_level:'low'};
+  if(forceTool) generation_config.tool_choice={allowed_tools:{mode:'any',tools:[forceTool]}};
+  const payload={model:MODEL,input,system_instruction:system,tools,generation_config};
   if(previousInteractionId) payload.previous_interaction_id=previousInteractionId;
   const r=await fetch(GEMINI_API_URL,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(payload)});
   const data=await r.json();
@@ -89,6 +91,11 @@ function outputText(interaction) {
     .trim();
 }
 
+function wantsAddTask(text='') {
+  const s=String(text).toLowerCase().trim();
+  return /\b(add|create|put|make|remember)\b.*\b(task|todo|to-do)\b|\btask\b.*\b(add|create|put|make)\b|\b(add|create)\b\s+.+\s+to\s+(my\s+)?(task|todo|to-do)\s+list\b/.test(s);
+}
+
 export default async function handler(req,res){
   if(req.method!=='POST') return res.status(405).json({error:'POST only'});
   if(!process.env.GEMINI_API_KEY) return res.status(500).json({error:'GEMINI_API_KEY is not configured on the server.'});
@@ -101,7 +108,9 @@ export default async function handler(req,res){
     const latest=messages[messages.length-1];
     if(!latest?.content) return res.status(400).json({error:'Message is required.'});
 
-    let interaction=await createInteraction(process.env.GEMINI_API_KEY,[{type:'user_input',content:[{type:'text',text:String(latest.content)}]}],interactionId);
+    const userText=String(latest.content);
+    const forceTool=wantsAddTask(userText)?'add_task':'';
+    let interaction=await createInteraction(process.env.GEMINI_API_KEY,[{type:'user_input',content:[{type:'text',text:userText}]}],interactionId,forceTool);
     const actions=[];
 
     for(let step=0;step<5;step++) {
