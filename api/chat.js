@@ -1,13 +1,13 @@
 const MODEL = 'gemini-2.5-flash';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/' + MODEL + ':generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 
-const tools = [{functionDeclarations:[
-  {name:'list_tasks',description:'Read the current tasks in the app.',parameters:{type:'object',properties:{}}},
-  {name:'add_task',description:'Add a new task to the user’s task list.',parameters:{type:'object',properties:{text:{type:'string'}},required:['text']}},
-  {name:'complete_task',description:'Mark a current task complete or incomplete. Use list_tasks first when needed.',parameters:{type:'object',properties:{task_id:{type:'string'},done:{type:'boolean'}},required:['task_id','done']}},
-  {name:'search_gmail',description:'Search Gmail and return message metadata/snippets. Use this to find the right email, then use read_gmail for its full contents when needed.',parameters:{type:'object',properties:{query:{type:'string',description:'A Gmail search query such as newer_than:7d, from:name@example.com, or subject:invoice'},max_results:{type:'integer',description:'Number of messages to return, 1-10'}},required:['query','max_results']}},
-  {name:'read_gmail',description:'Read the full contents of one Gmail message after finding it with search_gmail.',parameters:{type:'object',properties:{message_id:{type:'string'}},required:['message_id']}}
-]}];
+const tools = [
+  {type:'function',name:'list_tasks',description:'Read the current tasks in the app.',parameters:{type:'object',properties:{},additionalProperties:false}},
+  {type:'function',name:'add_task',description:'Add a new task to the user’s task list.',parameters:{type:'object',properties:{text:{type:'string'}},required:['text'],additionalProperties:false}},
+  {type:'function',name:'complete_task',description:'Mark a current task complete or incomplete. Use list_tasks first when needed.',parameters:{type:'object',properties:{task_id:{type:'string'},done:{type:'boolean'}},required:['task_id','done'],additionalProperties:false}},
+  {type:'function',name:'search_gmail',description:'Search Gmail and return message metadata/snippets. Use this to find the right email, then use read_gmail for its full contents when needed.',parameters:{type:'object',properties:{query:{type:'string',description:'A Gmail search query such as newer_than:7d, from:name@example.com, or subject:invoice'},max_results:{type:'integer',description:'Number of messages to return, 1-10'}},required:['query','max_results'],additionalProperties:false}},
+  {type:'function',name:'read_gmail',description:'Read the full contents of one Gmail message after finding it with search_gmail.',parameters:{type:'object',properties:{message_id:{type:'string'}},required:['message_id'],additionalProperties:false}}
+];
 
 const system = `You are the personal AI agent inside Alexander's Personal AI Tools command center. Be helpful, concise, and action-oriented. Use app tools when the user asks you to manage tasks. When the user asks about email, use Gmail tools when Google is connected. Search first, then read a specific message when the user wants details or a summary. Never claim an action happened unless a tool succeeded.`;
 
@@ -24,15 +24,13 @@ function decode(v='') {
   catch (_) { return ''; }
 }
 
-function cleanHtml(v='') {
-  return v.replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ').trim();
-}
+function cleanHtml(v='') { return v.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim(); }
 
 function textPart(p) {
   if(!p) return '';
   if(p.mimeType==='text/plain' && p.body?.data) return decode(p.body.data);
   if(p.mimeType==='text/html' && p.body?.data) return cleanHtml(decode(p.body.data));
-  if(p.parts) return p.parts.map(textPart).filter(Boolean).join('\\n');
+  if(p.parts) return p.parts.map(textPart).filter(Boolean).join('\n');
   return '';
 }
 
@@ -59,28 +57,23 @@ async function readGmail(token, messageId) {
   return {id:m.id||messageId,date:h.date||'',from:h.from||'',to:h.to||'',subject:h.subject||'',labels:m.labelIds||[],snippet:m.snippet||'',body:textPart(m.payload).slice(0,30000)};
 }
 
-function toGeminiHistory(messages) {
-  return messages.map(m=>({
-    role:m.role==='assistant'?'model':'user',
-    parts:[{text:String(m.content||'')}]
-  }));
-}
-
-async function geminiGenerate(contents, key, toolConfig) {
-  const payload={contents,systemInstruction:{parts:[{text:system}]},tools};
-  if(toolConfig) payload.toolConfig=toolConfig;
-  const r=await fetch(GEMINI_API_URL+'?key='+encodeURIComponent(key),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+async function createInteraction(key, input, previousInteractionId='') {
+  const payload={model:MODEL,input,system_instruction:system,tools};
+  if(previousInteractionId) payload.previous_interaction_id=previousInteractionId;
+  const r=await fetch(GEMINI_API_URL,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(payload)});
   const data=await r.json();
   if(!r.ok) throw new Error(data?.error?.message||'Gemini request failed.');
   return data;
 }
 
-function partsOf(response) {
-  return response?.candidates?.[0]?.content?.parts||[];
-}
-
-function textOf(response) {
-  return partsOf(response).filter(p=>typeof p.text==='string').map(p=>p.text).join('\\n').trim();
+function outputText(interaction) {
+  return (interaction?.steps||[])
+    .filter(s=>s.type==='model_output')
+    .flatMap(s=>s.content||[])
+    .filter(c=>typeof c.text==='string')
+    .map(c=>c.text)
+    .join('\n')
+    .trim();
 }
 
 export default async function handler(req,res){
@@ -88,26 +81,25 @@ export default async function handler(req,res){
   if(!process.env.GEMINI_API_KEY) return res.status(500).json({error:'GEMINI_API_KEY is not configured on the server.'});
   try {
     const body=req.body||{};
-    const messages=Array.isArray(body.messages)?body.messages.slice(-10):[];
+    const messages=Array.isArray(body.messages)?body.messages:[];
     let tasks=Array.isArray(body.tasks)?body.tasks:[];
     const googleAccessToken=typeof body.googleAccessToken==='string'?body.googleAccessToken:'';
-    let contents=toGeminiHistory(messages);
+    const interactionId=typeof body.interactionId==='string'?body.interactionId:'';
+    const latest=messages[messages.length-1];
+    if(!latest?.content) return res.status(400).json({error:'Message is required.'});
+
+    let interaction=await createInteraction(process.env.GEMINI_API_KEY,[{type:'user_input',content:[{type:'text',text:String(latest.content)}]}],interactionId);
     const actions=[];
 
     for(let step=0;step<5;step++) {
-      const response=await geminiGenerate(contents,process.env.GEMINI_API_KEY);
-      const parts=partsOf(response);
-      const calls=parts.filter(p=>p.functionCall?.name);
+      const calls=(interaction.steps||[]).filter(s=>s.type==='function_call');
       if(!calls.length) {
-        return res.status(200).json({text:textOf(response)||'I’m here. What can I help you with?',actions,tasks});
+        return res.status(200).json({text:outputText(interaction)||'I’m here. What can I help you with?',actions,tasks,interactionId:interaction.id});
       }
 
-      contents.push({role:'model',parts:parts.filter(Boolean)});
-      const resultParts=[];
-
-      for(const part of calls) {
-        const call=part.functionCall;
-        const args=call.args||{};
+      const results=[];
+      for(const call of calls) {
+        const args=call.arguments||{};
         let result;
         if(call.name==='list_tasks') result={tasks};
         else if(call.name==='add_task') {
@@ -137,11 +129,13 @@ export default async function handler(req,res){
           else result={success:true,message:await readGmail(googleAccessToken,args.message_id)};
         } else result={success:false,error:'Unknown tool.'};
 
-        resultParts.push({functionResponse:{name:call.name,response:result}});
+        results.push({type:'function_result',name:call.name,call_id:call.id,result:[{type:'text',text:JSON.stringify(result)}]});
       }
-      contents.push({role:'user',parts:resultParts});
+
+      interaction=await createInteraction(process.env.GEMINI_API_KEY,results,interaction.id);
     }
-    return res.status(200).json({text:'I reached the action limit for this request. Please try that again.',actions,tasks});
+
+    return res.status(200).json({text:'I reached the action limit for this request. Please try that again.',actions,tasks,interactionId:interaction.id});
   } catch(err) {
     return res.status(500).json({error:err.message||'Server error.'});
   }
