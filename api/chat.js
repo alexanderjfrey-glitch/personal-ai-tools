@@ -3,13 +3,26 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/interac
 
 const tools = [
   {type:'function',name:'list_tasks',description:'Read the current tasks in the app.',parameters:{type:'object',properties:{},additionalProperties:false}},
-  {type:'function',name:'add_task',description:'Add a new task to the user’s task list.',parameters:{type:'object',properties:{text:{type:'string'}},required:['text'],additionalProperties:false}},
+  {type:'function',name:'add_task',description:'Add a new task to the user’s task list. MUST be called when the user asks to add, create, or put a task on their list.',parameters:{type:'object',properties:{text:{type:'string'}},required:['text'],additionalProperties:false}},
   {type:'function',name:'complete_task',description:'Mark a current task complete or incomplete. Use list_tasks first when needed.',parameters:{type:'object',properties:{task_id:{type:'string'},done:{type:'boolean'}},required:['task_id','done'],additionalProperties:false}},
   {type:'function',name:'search_gmail',description:'Search Gmail and return message metadata/snippets. Use this to find the right email, then use read_gmail for its full contents when needed.',parameters:{type:'object',properties:{query:{type:'string',description:'A Gmail search query such as newer_than:7d, from:name@example.com, or subject:invoice'},max_results:{type:'integer',description:'Number of messages to return, 1-10'}},required:['query','max_results'],additionalProperties:false}},
   {type:'function',name:'read_gmail',description:'Read the full contents of one Gmail message after finding it with search_gmail.',parameters:{type:'object',properties:{message_id:{type:'string'}},required:['message_id'],additionalProperties:false}}
 ];
 
-const system = `You are the personal AI agent inside Alexander's Personal AI Tools command center. Be helpful, concise, and action-oriented. Use app tools when the user asks you to manage tasks. When the user asks about email, use Gmail tools when Google is connected. Search first, then read a specific message when the user wants details or a summary. Never claim an action happened unless a tool succeeded.`;
+const system = `You are the personal AI agent inside Alexander's Personal AI Tools command center. Be helpful, concise, and action-oriented.
+
+TASK RULES:
+- When the user asks to add, create, remember, or put a task on their task list, you MUST call add_task. Do not respond with a generic offer to help and do not ask the user to repeat the request.
+- When the user asks to see their tasks, call list_tasks.
+- When the user asks to complete, finish, or mark a task done, call list_tasks first if you need the task ID, then call complete_task.
+- A task can contain natural-language timing such as "tomorrow". Preserve that wording in the task text for now; do not invent a calendar event.
+
+EMAIL RULES:
+- When the user asks about email, use Gmail tools when Google is connected. Search first, then read a specific message when the user wants details or a summary.
+
+GENERAL RULES:
+- Never claim an action happened unless a tool succeeded.
+- After a tool succeeds, briefly confirm what you did.`;
 
 function gmailFetch(url, token) {
   return fetch(url,{headers:{Authorization:'Bearer '+token}}).then(async r=>{
