@@ -3,10 +3,10 @@ async function openaiResponses(input, tools, instructions) {
   const data=await r.json(); if(!r.ok) throw new Error(data?.error?.message||'OpenAI request failed.'); return data;
 }
 const tools=[
- {type:'function',name:'list_tasks',description:'Read the current tasks in the app.',parameters:{type:'object',properties:{},additionalProperties:false},strict:true},
+ {type:'function',name:'list_tasks',description:'Read the current tasks in the app.',parameters:{type:'object',properties:{},additionalProperties:false,required:[]},strict:true},
  {type:'function',name:'add_task',description:'Add a new task to the user’s task list.',parameters:{type:'object',properties:{text:{type:'string'}},required:['text'],additionalProperties:false},strict:true},
  {type:'function',name:'complete_task',description:'Mark a current task complete or incomplete. Use list_tasks first when needed.',parameters:{type:'object',properties:{task_id:{type:'string'},done:{type:'boolean'}},required:['task_id','done'],additionalProperties:false},strict:true},
- {type:'function',name:'search_gmail',description:'Search the connected Gmail account and return readable message bodies.',parameters:{type:'object',properties:{query:{type:'string'},max_results:{type:'integer',minimum:1,maximum:20}},required:['query'],additionalProperties:false},strict:true}
+ {type:'function',name:'search_gmail',description:'Search the connected Gmail account and return readable message bodies.',parameters:{type:'object',properties:{query:{type:'string'},max_results:{type:'integer',minimum:1,maximum:20}},required:['query','max_results'],additionalProperties:false},strict:true}
 ];
 function gmailFetch(url,token,options={}){return fetch(url,{...options,headers:{...(options.headers||{}),Authorization:`Bearer ${token}`}}).then(async r=>{if(!r.ok)throw new Error(`Gmail API ${r.status}`);return r.json()})}
 function decode(v=''){try{return Buffer.from(v.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8')}catch(_){return ''}}
