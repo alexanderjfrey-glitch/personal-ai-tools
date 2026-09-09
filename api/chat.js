@@ -1,4 +1,4 @@
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-3.6-flash';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 
 const tools = [
@@ -58,7 +58,7 @@ async function readGmail(token, messageId) {
 }
 
 async function createInteraction(key, input, previousInteractionId='') {
-  const payload={model:MODEL,input,system_instruction:system,tools};
+  const payload={model:MODEL,input,system_instruction:system,tools,generation_config:{thinking_level:'low'}};
   if(previousInteractionId) payload.previous_interaction_id=previousInteractionId;
   const r=await fetch(GEMINI_API_URL,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(payload)});
   const data=await r.json();
